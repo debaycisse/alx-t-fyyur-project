@@ -3,6 +3,7 @@
 #----------------------------------------------------------------------------#
 
 import json
+from linecache import lazycache
 import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
@@ -29,6 +30,22 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:abc@localhost:543
 # Models.
 #----------------------------------------------------------------------------#
 
+
+# class Shows(db.Model):
+#     __tablename__ = 'Shows'
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'))
+#     artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'))
+
+shows = db.Table(
+  'shows',
+  db.Column(db.Integer, db.ForeignKey('Venue.id'), primary_key=True ),
+  db.Column(db.Integer, db.ForeignKey('Artist.id'), primary_key=True )
+)
+
+
+
 class Venue(db.Model):
     __tablename__ = 'Venue'
 
@@ -43,6 +60,7 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean)
     talent_seeking_message = db.Column(db.String())
     genres = db.Column(db.String(120))
+    artists = db.relationship('Artist', secondary=shows, backref=db.backref('venues', lazy=True))
 
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -65,13 +83,6 @@ class Artist(db.Model):
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
-
-class Shows(db.Model):
-    __tablename__ = 'Shows'
-
-    id = db.Column(db.Integer, primary_key=True)
-    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'))
-    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'))
 
 
 
@@ -106,11 +117,28 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-  real_data = Venue(
-    name = "The Musical Hop"
-    city = "San Francisco"
+  venue1 = Venue(
+    name = 'The Musical Hop',
+    city = 'San Francisco',
+    state = 'CA')
+
+  venue2 = Venue(
+    name = 'The Dueling Pianos Bar',
+    city = 'New York',
+    state = 'NY')
+
+  venue3 = Venue(
+    name = 'Park Square Live Music & Coffee',
+    city = 'San Francisco',
+    state = 'CA'
   )
-  db.session.add(real_data)
+  venue3.artists = Artist()
+
+
+  
+
+  db.session.add_all([venue1, venue2, venue3])
+  db.session.commit()
 
   data=[{
   "city": "San Francisco",
