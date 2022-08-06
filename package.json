@@ -1,0 +1,23 @@
+{
+  "name": "alx-t-fyyur-project",
+  "version": "1.0.0",
+  "description": "Fyyur -----",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/debaycisse/alx-t-fyyur-project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/debaycisse/alx-t-fyyur-project/issues"
+  },
+  "homepage": "https://github.com/debaycisse/alx-t-fyyur-project#readme",
+  "dependencies": {
+    "bootstrap": "^3.4.1"
+  }
+}
