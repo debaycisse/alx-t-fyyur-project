@@ -24,12 +24,15 @@ from model import *
 #----------------------------------------------------------------------------#
 
 app = Flask(__name__)
+db.init_app(app)
+
+# def create_app():
+#   db.init_app(app)
+#   return app
+
 moment = Moment(app)
 app.config.from_object('config')
-db.init_app(app=app)
 migrate = Migrate(app, db)
-today_time = datetime.now()
-
 
 #----------------------------------------------------------------------------#
 # Models.
@@ -68,18 +71,24 @@ def index():
 def venues():
 
   venue1 = Venue.query.get(1)
-  venue1_past_shows_count = Show.query.filter_by(venue_id=venue1.id).filter( Show.start_time<today_time).count()
+  # venue1_past_shows_count = Show.query.filter_by(venue_id=venue1.id).filter( Show.start_time<datetime.now()).count()
+  venue1_upcoming_shows_count = db.session.query(Show).filter(Show.venues.id==venue1.id).filter(Show.start_time>datetime.now()).count()
+
   venue2 = Venue.query.get(3)
-  venue2_upcoming_shows_count = Show.query.filter_by(venue_id=venue2.id).filter(Show.start_time>today_time).count()
+  # venue2_upcoming_shows_count = Show.query.filter_by(venue_id=venue2.id).filter(Show.start_time>datetime.now()).count()
+  venue2_upcoming_shows_count = db.session.query(Show).filter(Show.venues.id==venue2.id).filter(Show.start_time>datetime.now()).count()
+  
   venue3 = Venue.query.get(2)
-  venue3_upcoming_shows_count = Show.query.filter_by(venue_id=venue3.id).filter(Show.start_time>today_time).count()
+  # venue3_upcoming_shows_count = Show.query.filter_by(venue_id=venue3.id).filter(Show.start_time>datetime.now()).count()
+  venue3_upcoming_shows_count = db.session.query(Show).filter(Show.venues.id==venue3.id).filter(Show.start_time>datetime.now()).count()
+
   data=[{
     "city": venue1.city,
     "state": venue1.state,
     "venues": [{
       "id": venue1.id,
       "name": venue1.name,
-      "num_upcoming_shows": venue1_past_shows_count,
+      "num_upcoming_shows": venue1_upcoming_shows_count,
     }, {
       "id": venue2.id,
       "name": venue2.name,
@@ -102,12 +111,18 @@ def search_venues():
 
   db_search_result = Venue.query.filter(Venue.name.ilike('%'+search_word+'%'))
 
+  matched_records = {"id": [], "name": []}
+
+  for data in range(len(db_search_result.all())):
+    matched_records["id"].append(db_search_result.all()[data].id)
+    matched_records["name"].append(db_search_result.all()[data].name)
+
   response={
     "count": db_search_result.count(),
     "data": [{
-      "id": db_search_result.first().id,
-      "name": db_search_result.first().name,
-      "num_upcoming_shows": Show.query.filter(Show.artist_id == db_search_result.first().id, Show.start_time > today_time).count()
+      "id": matched_records["id"],
+      "name": matched_records["name"],
+      "num_upcoming_shows": Show.query.filter(Show.artist_id == db_search_result.first().id, Show.start_time > datetime.now()).count()
     }]
   }
   return render_template('pages/search_venues.html',  results=response, search_term=request.form.get('search_term', ''))
@@ -117,18 +132,18 @@ def show_venue(venue_id):
   venue1 = Venue.query.get(1)
   venue1_genres = venue1.genres.split(',')
   venue1_artist = Artist.query.get(4)
-  venue1_show_time = str(Show.query.get(1).start_time)
-  venue1_past_shows_count = Show.query.filter(Show.venue_id == venue1.id, Show.start_time < today_time).count()
-  venue1_upcoming_shows_count = Show.query.filter(Show.venue_id == venue1.id, Show.start_time > today_time).count()
-  venue1_upcoming_shows = Show.query.filter(Show.venue_id == venue1.id, Show.start_time > today_time).all()
+  venue1_show_time = str(db.session.query(Show).filter(Show.venues.id==venue1.id).start_time) #str(Show.query.get(1).start_time)
+  venue1_past_shows_count = Show.query.filter(Show.venue_id == venue1.id, Show.start_time < datetime.now()).count()
+  venue1_upcoming_shows_count = Show.query.filter(Show.venue_id == venue1.id, Show.start_time > datetime.now()).count()
+  venue1_upcoming_shows = Show.query.filter(Show.venue_id == venue1.id, Show.start_time > datetime.now()).all()
  
 
   venue2 = Venue.query.get(2)
   venue2_genres = venue2.genres.split(',')
-  venue2_past_shows_count = Show.query.filter(Show.venue_id == venue2.id, Show.start_time < today_time).count()
-  venue2_upcoming_shows_count = Show.query.filter(Show.venue_id == venue2.id, Show.start_time > today_time).count()
-  venue2_upcoming_shows = Show.query.filter(Show.venue_id == venue2.id, Show.start_time > today_time).all()
-  venue2_past_shows = Show.query.filter(Show.venue_id == venue2.id, Show.start_time < today_time).all()
+  venue2_past_shows_count = Show.query.filter(Show.venue_id == venue2.id, Show.start_time < datetime.now()).count()
+  venue2_upcoming_shows_count = Show.query.filter(Show.venue_id == venue2.id, Show.start_time > datetime.now()).count()
+  venue2_upcoming_shows = Show.query.filter(Show.venue_id == venue2.id, Show.start_time > datetime.now()).all()
+  venue2_past_shows = Show.query.filter(Show.venue_id == venue2.id, Show.start_time < datetime.now()).all()
 
 
   venue3 = Venue.query.get(3)
@@ -139,8 +154,8 @@ def show_venue(venue_id):
   venue3_2nd_show_time = str(Show.query.get(3).start_time)
   venue3_3rd_show_time = str(Show.query.get(4).start_time)
   venue3_4th_show_time = str(Show.query.get(5).start_time)
-  venue3_past_shows_count = Show.query.filter(Show.venue_id == venue3.id, Show.start_time < today_time).count()
-  venue3_upcoming_shows_count = Show.query.filter(Show.venue_id == venue3.id, Show.start_time > today_time).count()
+  venue3_past_shows_count = Show.query.filter(Show.venue_id == venue3.id, Show.start_time < datetime.now()).count()
+  venue3_upcoming_shows_count = Show.query.filter(Show.venue_id == venue3.id, Show.start_time > datetime.now()).count()
   
   data1={
     "id": venue1.id,
@@ -310,7 +325,7 @@ def search_artists():
     "data": [{
       "id": db_search_result.first().id,
       "name": db_search_result.first().name,
-      "num_upcoming_shows": Show.query.filter(Show.artist_id == db_search_result.first().id, Show.start_time > today_time).count(),
+      "num_upcoming_shows": Show.query.filter(Show.artist_id == db_search_result.first().id, Show.start_time > datetime.now()).count(),
     }]
   }
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
@@ -322,18 +337,18 @@ def show_artist(artist_id):
   artist4_genres.remove('')
   artist4_venue = Venue.query.get(1)
   artist4_show_time = str(Show.query.get(1).start_time)
-  artist4_past_shows_count = Show.query.filter_by(artist_id=artist4.id).filter(Show.start_time<today_time).count()
-  artist4_upcoming_shows_count = Show.query.filter_by(artist_id=artist4.id).filter(Show.start_time>today_time).count()
-  artist4_upcoming_shows = Show.query.filter_by(artist_id=artist4.id).filter(Show.start_time>today_time)
+  artist4_past_shows_count = Show.query.filter_by(artist_id=artist4.id).filter(Show.start_time<datetime.now()).count()
+  artist4_upcoming_shows_count = Show.query.filter_by(artist_id=artist4.id).filter(Show.start_time>datetime.now()).count()
+  artist4_upcoming_shows = Show.query.filter_by(artist_id=artist4.id).filter(Show.start_time>datetime.now())
 
   artist5 = Artist.query.get(5)
   artist5_genres = artist5.genres.split(',')
   artist5_genres.remove('')
   artist5_venue = Venue.query.get(3)
   artist5_show_time = str(Show.query.get(2).start_time)
-  artist5_past_shows_count = Show.query.filter_by(artist_id=artist5.id).filter(Show.start_time<today_time).count()
-  artist5_upcoming_shows_count = Show.query.filter_by(artist_id=artist5.id).filter(Show.start_time>today_time).count()
-  artist5_upcoming_shows = Show.query.filter_by(artist_id=artist5.id).filter(Show.start_time>today_time)
+  artist5_past_shows_count = Show.query.filter_by(artist_id=artist5.id).filter(Show.start_time<datetime.now()).count()
+  artist5_upcoming_shows_count = Show.query.filter_by(artist_id=artist5.id).filter(Show.start_time>datetime.now()).count()
+  artist5_upcoming_shows = Show.query.filter_by(artist_id=artist5.id).filter(Show.start_time>datetime.now())
 
   artist6 = Artist.query.get(6)
   artist6_genres = artist6.genres.split(',')
@@ -342,9 +357,9 @@ def show_artist(artist_id):
   artist6_1st_show_time = str(Show.query.get(3).start_time)
   artist6_2nd_show_time = str(Show.query.get(4).start_time)
   artist6_3rd_show_time = str(Show.query.get(5).start_time)
-  artist6_past_shows_count = Show.query.filter_by(artist_id=artist6.id).filter(Show.start_time<today_time).count()
-  artist6_upcoming_shows_count = Show.query.filter_by(artist_id=artist6.id).filter(Show.start_time>today_time).count()
-  artist6_upcoming_shows = Show.query.filter_by(artist_id=artist6.id).filter(Show.start_time>today_time)
+  artist6_past_shows_count = Show.query.filter_by(artist_id=artist6.id).filter(Show.start_time<datetime.now()).count()
+  artist6_upcoming_shows_count = Show.query.filter_by(artist_id=artist6.id).filter(Show.start_time>datetime.now()).count()
+  artist6_upcoming_shows = Show.query.filter_by(artist_id=artist6.id).filter(Show.start_time>datetime.now())
 
 
   data1={

@@ -19,6 +19,8 @@ class Venue(db.Model):
     genres = db.Column(db.String(120), nullable=False)
     seeking_talent = db.Column(db.Boolean)
     seeking_description = db.Column(db.String())
+    # This establishes relationship for both this & show model
+    shows = db.relationship('Show', back_populates='venue')
 
 
 class Artist(db.Model):
@@ -35,11 +37,18 @@ class Artist(db.Model):
     website = db.Column(db.String(250))
     seeking_venue = db.Column(db.Boolean)
     seeking_description = db.Column(db.String())
+    # This establishes relationship for both this and show model
+    shows = db.relationship('Show', back_populates='artist')
+
 
 class Show(db.Model):
     __tablename__ = 'Show'
 
     id = db.Column(db.Integer, primary_key=True)
-    artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'), nullable=False)
-    venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'), nullable=False)
     start_time = db.Column(db.DateTime(), nullable=False)
+    artist_id = db.Column(db.Integer, db.ForeignKey("Artist.id"), primary_key=True)
+    venue_id = db.Column(db.Integer, db.ForeignKey("Venue.id"), primary_key=True)
+
+    # For the relationships, which should exist on both this model, artist, and venue models
+    artist = db.relationship('Artist', back_populates='shows')
+    venue = db.relationship('Venue', back_populates='shows')
