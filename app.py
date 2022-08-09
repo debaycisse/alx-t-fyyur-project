@@ -25,15 +25,6 @@ from model import *
 
 app = Flask(__name__)
 db.init_app(app)
-
-# def create_app():
-#   db.init_app(app)
-#   return app
-
-# from yourapp import create_app
-# app = create_app()
-# app.app_context().push()
-
 moment = Moment(app)
 app.config.from_object('config')
 migrate = Migrate(app, db)
@@ -74,13 +65,13 @@ def index():
 @app.route('/venues')
 def venues():
 
-  venue1 = Venue.query.get(2)
+  venue1 = Venue.query.get(1)
   venue1_upcoming_shows_count = db.session.query(Show).filter(Show.venue_id==venue1.id).filter(Show.start_time>datetime.now()).count()
 
   venue2 = Venue.query.get(4)
   venue2_upcoming_shows_count = db.session.query(Show).filter(Show.venue_id==venue2.id).filter(Show.start_time>datetime.now()).count()
   
-  venue3 = Venue.query.get(3)
+  venue3 = Venue.query.get(2)
   venue3_upcoming_shows_count = db.session.query(Show).filter(Show.venue_id==venue3.id).filter(Show.start_time>datetime.now()).count()
 
   data=[{
@@ -91,17 +82,17 @@ def venues():
       "name": venue1.name,
       "num_upcoming_shows": venue1_upcoming_shows_count,
     }, {
-      "id": venue2.id,
-      "name": venue2.name,
-      "num_upcoming_shows": venue2_upcoming_shows_count
-    }]
-  }, {
-    "city": venue3.city,
-    "state": venue3.state,
-    "venues": [{
       "id": venue3.id,
       "name": venue3.name,
       "num_upcoming_shows": venue3_upcoming_shows_count
+    }]
+  }, {
+    "city": venue2.city,
+    "state": venue2.state,
+    "venues": [{
+      "id": venue2.id,
+      "name": venue2.name,
+      "num_upcoming_shows": venue2_upcoming_shows_count
     }]
   }]
   return render_template('pages/venues.html', areas=data)
@@ -114,15 +105,15 @@ def search_venues():
 
   matched_records = {"id": [], "name": []}
 
-  for data in range(len(db_search_result)):
+  for data in range(len(db_search_result.all())):
     matched_records["id"].append(db_search_result[data].id)
     matched_records["name"].append(db_search_result[data].name)
 
   response={
     "count": db_search_result.count(),
     "data": [{
-      "id": matched_records["id"],
-      "name": matched_records["name"],
+      "id": matched_records["id"][0],
+      "name": matched_records["name"][0],
       "num_upcoming_shows": Show.query.filter(Show.artist_id == db_search_result.first().id, Show.start_time > datetime.now()).count()
     }]
   }
@@ -130,7 +121,7 @@ def search_venues():
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
-  venue1 = Venue.query.get(2)
+  venue1 = Venue.query.get(1)
   venue1_genres = venue1.genres.split(',')
   venue1_genres.remove('')
   venue1_artist = db.session.query(Artist).join(Show).filter(Show.venue_id==venue1.id).first()
@@ -140,7 +131,7 @@ def show_venue(venue_id):
   venue1_upcoming_shows = Show.query.filter(Show.venue_id == venue1.id, Show.start_time > datetime.now()).all()
  
 
-  venue2 = Venue.query.get(3)
+  venue2 = Venue.query.get(2)
   venue2_genres = venue2.genres.split(',')
   venue2_genres.remove('')
   venue2_past_shows_count = Show.query.filter(Show.venue_id == venue2.id, Show.start_time < datetime.now()).count()
@@ -151,13 +142,13 @@ def show_venue(venue_id):
 
   venue3 = Venue.query.get(4)
   venue3_genres = venue3.genres.split(',')
-  venue3_genres.remove('')
-  venue3_1st_artist = db.session.query(Artist).join(Show).filter(Show.venue_id==venue3.id, Show.id==3).first()
+  # venue3_genres.remove('')
+  venue3_1st_artist = db.session.query(Artist).join(Show).filter(Show.venue_id==venue3.id, Show.id==2).first()
   venue3_2nd_artist = db.session.query(Artist).join(Show).filter(Show.venue_id==venue3.id, Show.id==4).first()
   venue3_1st_show_time = str(db.session.query(Show).filter(Show.id==2).first().start_time)
-  venue3_2nd_show_time = str(db.session.query(Show).filter(Show.id==3).first().start_time)
-  venue3_3rd_show_time = str(db.session.query(Show).filter(Show.id==4).first().start_time)
-  venue3_4th_show_time = str(db.session.query(Show).filter(Show.id==5).first().start_time)
+  venue3_2nd_show_time = str(db.session.query(Show).filter(Show.id==4).first().start_time)
+  venue3_3rd_show_time = str(db.session.query(Show).filter(Show.id==5).first().start_time)
+  venue3_4th_show_time = str(db.session.query(Show).filter(Show.id==6).first().start_time)
   venue3_past_shows_count = Show.query.filter(Show.venue_id == venue3.id, Show.start_time < datetime.now()).count()
   venue3_upcoming_shows_count = Show.query.filter(Show.venue_id == venue3.id, Show.start_time > datetime.now()).count()
   
@@ -252,10 +243,11 @@ def create_venue_form():
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
   
+  # Formatting genres before adding it to the DB
   genres = ''
   data_length = len(request.form.getlist('genres'))
-  for data in range(data_length):
-    genres += str(request.form.getlist('genres')[data])+","
+  for genre_index in range(data_length):
+    genres += str(request.form.getlist('genres')[genre_index])+","
 
   try:
     form = Venue(
@@ -277,7 +269,7 @@ def create_venue_submission():
     flash('Venue ' + request.form['name'] + ' was successfully listed!')
   except:
     db.session.rollback()
-    flash('An error occured. Venue ' + request.form['name'] + ' could not be listed.' + '' + 'after the empty string')
+    flash('An error occured. Venue ' + request.form['name'] + ' could not be listed.')
   finally:
     db.session.close()
 
@@ -303,9 +295,9 @@ def delete_venue(venue_id):
 #  ----------------------------------------------------------------
 @app.route('/artists')
 def artists():
-  artist1 = Artist.query.get(4)
-  artist2 = Artist.query.get(5)
-  artist3 = Artist.query.get(6)
+  artist1 = Artist.query.get(1)
+  artist2 = Artist.query.get(2)
+  artist3 = Artist.query.get(4)
   data=[{
     "id": artist1.id,
     "name": artist1.name,
@@ -336,34 +328,38 @@ def search_artists():
 
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
-  artist4 = Artist.query.get(4)
+  artist4 = Artist.query.get(1)
   artist4_genres = artist4.genres.split(',')
   artist4_genres.remove('')
-  artist4_venue = Venue.query.get(1)
-  artist4_show_time = str(Show.query.get(1).start_time)
-  artist4_past_shows_count = Show.query.filter_by(artist_id=artist4.id).filter(Show.start_time<datetime.now()).count()
-  artist4_upcoming_shows_count = Show.query.filter_by(artist_id=artist4.id).filter(Show.start_time>datetime.now()).count()
-  artist4_upcoming_shows = Show.query.filter_by(artist_id=artist4.id).filter(Show.start_time>datetime.now())
+  artist4_show_time = str(db.session.query(Show).filter(Show.artist_id==artist4.id).first().start_time)
+  artist4_past_shows_count = db.session.query(Show).filter(Show.artist_id==artist4.id, Show.start_time<datetime.now()).count()
+  artist4_upcoming_shows_count = db.session.query(Show).filter(Show.artist_id==artist4.id, Show.start_time>datetime.now()).count()
+  artist4_upcoming_shows = db.session.query(Show).filter(Show.artist_id==artist4.id, Show.start_time>datetime.now()).all()
+  artist4_past_show_venue = db.session.query(Venue).join(Show).filter(Show.artist_id==artist4.id, Show.start_time < datetime.now()).first()
 
-  artist5 = Artist.query.get(5)
+
+  artist5 = Artist.query.get(2)
   artist5_genres = artist5.genres.split(',')
   artist5_genres.remove('')
-  artist5_venue = Venue.query.get(3)
-  artist5_show_time = str(Show.query.get(2).start_time)
-  artist5_past_shows_count = Show.query.filter_by(artist_id=artist5.id).filter(Show.start_time<datetime.now()).count()
-  artist5_upcoming_shows_count = Show.query.filter_by(artist_id=artist5.id).filter(Show.start_time>datetime.now()).count()
-  artist5_upcoming_shows = Show.query.filter_by(artist_id=artist5.id).filter(Show.start_time>datetime.now())
+  artist5_show_time = str(db.session.query(Show).filter(Show.artist_id==artist5.id).first().start_time)
+  artist5_past_shows_count = db.session.query(Show).filter(Show.artist_id==artist5.id, Show.start_time<datetime.now()).count()
+  artist5_past_shows_venue = db.session.query(Venue).join(Show).filter(Show.artist_id==artist5.id, Show.start_time<datetime.now()).first()
+  artist5_upcoming_shows_count = db.session.query(Show).filter(Show.artist_id==artist5.id, Show.start_time>datetime.now()).count()
+  artist5_upcoming_shows = db.session.query(Show).filter(Show.artist_id==artist5.id, Show.start_time>datetime.now()).all()
 
-  artist6 = Artist.query.get(6)
+
+  artist6 = Artist.query.get(4)
   artist6_genres = artist6.genres.split(',')
   artist6_genres.remove('')
-  artist6_venue = Venue.query.get(3)
-  artist6_1st_show_time = str(Show.query.get(3).start_time)
-  artist6_2nd_show_time = str(Show.query.get(4).start_time)
-  artist6_3rd_show_time = str(Show.query.get(5).start_time)
-  artist6_past_shows_count = Show.query.filter_by(artist_id=artist6.id).filter(Show.start_time<datetime.now()).count()
-  artist6_upcoming_shows_count = Show.query.filter_by(artist_id=artist6.id).filter(Show.start_time>datetime.now()).count()
-  artist6_upcoming_shows = Show.query.filter_by(artist_id=artist6.id).filter(Show.start_time>datetime.now())
+  artist6_1st_upcoming_show_time = str(db.session.query(Show).filter(Show.artist_id==artist6.id).first().start_time)
+  artist6_2nd_upcoming_show_time = str(db.session.query(Show).filter(Show.artist_id==artist6.id, Show.id==5).first().start_time)
+  artist6_3rd_upcoming_show_time = str(db.session.query(Show).filter(Show.artist_id==artist6.id, Show.id==6).first().start_time)
+  artist6_past_shows_count = db.session.query(Show).filter(Show.artist_id==artist6.id, Show.start_time<datetime.now()).count()
+  artist6_upcoming_shows_count = db.session.query(Show).filter(Show.artist_id==artist6.id, Show.start_time>datetime.now()).count()
+  artist6_1st_upcoming_shows_venue = db.session.query(Venue).join(Show).filter(Show.artist_id==artist6.id, Show.start_time>datetime.now()).first()
+  artist6_2nd_upcoming_shows_venue = db.session.query(Venue).join(Show).filter(Show.artist_id==artist6.id, Show.start_time>datetime.now(), Show.id==5).first()
+  artist6_3rd_upcoming_shows_venue = db.session.query(Venue).join(Show).filter(Show.artist_id==artist6.id, Show.start_time>datetime.now(), Show.id==6).first()
+  artist6_past_shows = db.session.query(Show).filter(Show.artist_id==artist6.id, Show.start_time<datetime.now()).all()
 
 
   data1={
@@ -379,10 +375,10 @@ def show_artist(artist_id):
     "seeking_description": artist4.seeking_description,
     "image_link": artist4.image_link,
     "past_shows": [{
-      "venue_id": artist4_venue.id,
-      "venue_name": artist4_venue.name,
-      "venue_image_link": artist4_venue.image_link,
-      "start_time": artist4_show_time
+      "venue_id": artist4_past_show_venue.id,
+      "venue_name": artist4_past_show_venue.name,
+      "venue_image_link": artist4_past_show_venue.image_link,
+      "start_time": artist4_show_time,
     }],
     "upcoming_shows": artist4_upcoming_shows,
     "past_shows_count": artist4_past_shows_count,
@@ -399,10 +395,10 @@ def show_artist(artist_id):
     "seeking_venue": artist5.seeking_venue,
     "image_link": artist5.image_link,
     "past_shows": [{
-      "venue_id": artist5_venue.id,
-      "venue_name": artist5_venue.name,
-      "venue_image_link": artist5_venue.image_link,
-      "start_time": artist5_show_time
+      "venue_id": artist5_past_shows_venue.id,
+      "venue_name": artist5_past_shows_venue.name,
+      "venue_image_link": artist5_past_shows_venue.image_link,
+      "start_time": artist5_show_time,
     }],
     "upcoming_shows": artist5_upcoming_shows,
     "past_shows_count": artist5_past_shows_count,
@@ -417,22 +413,22 @@ def show_artist(artist_id):
     "phone": artist6.phone,
     "seeking_venue": artist6.seeking_venue,
     "image_link": artist6.image_link,
-    "past_shows": [],
+    "past_shows": artist6_past_shows,
     "upcoming_shows": [{
-      "venue_id": artist6_venue.id,
-      "venue_name": artist6_venue.name,
-      "venue_image_link": artist6_venue.image_link,
-      "start_time": artist6_1st_show_time
+      "venue_id": artist6_1st_upcoming_shows_venue.id,
+      "venue_name": artist6_1st_upcoming_shows_venue.name,
+      "venue_image_link": artist6_1st_upcoming_shows_venue.image_link,
+      "start_time": artist6_1st_upcoming_show_time
     }, {
-      "venue_id": artist6_venue.id,
-      "venue_name": artist6_venue.name,
-      "venue_image_link": artist6_venue.image_link,
-      "start_time": artist6_2nd_show_time
+      "venue_id": artist6_2nd_upcoming_shows_venue.id,
+      "venue_name": artist6_2nd_upcoming_shows_venue.name,
+      "venue_image_link": artist6_2nd_upcoming_shows_venue.image_link,
+      "start_time": artist6_2nd_upcoming_show_time
     }, {
-      "venue_id": artist6_venue.id,
-      "venue_name": artist6_venue.name,
-      "venue_image_link": artist6_venue.image_link,
-      "start_time": artist6_3rd_show_time
+      "venue_id": artist6_3rd_upcoming_shows_venue.id,
+      "venue_name": artist6_3rd_upcoming_shows_venue.name,
+      "venue_image_link": artist6_3rd_upcoming_shows_venue.image_link,
+      "start_time": artist6_3rd_upcoming_show_time
     }],
     "past_shows_count": artist6_past_shows_count,
     "upcoming_shows_count": artist6_upcoming_shows_count,
@@ -448,6 +444,7 @@ def edit_artist(artist_id):
   # Formating genres
   genres_list = artist_record.genres.split(',')
   genres_list.remove('')
+  # Converting the genres back into set so that it can fit in for the SelectMultipleField
   genres = set(genres_list)
   form = ArtistForm()
 
@@ -464,7 +461,6 @@ def edit_artist(artist_id):
     "seeking_description": artist_record.seeking_description,
     "image_link": artist_record.image_link
   }
-  # TODO: populate form with fields from artist with ID <artist_id> - done
   return render_template('forms/edit_artist.html', form=form, artist=artist)
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
@@ -477,7 +473,7 @@ def edit_artist_submission(artist_id):
   for data in range(data_length):
     genres += str(request.form.getlist('genres')[data])+","
 
-  # Taking data from each field
+  # Taking & storing data from each of the fields
   name = request.form.get('name')
   city = request.form.get('city')
   state = request.form.get('state')
@@ -516,8 +512,11 @@ def edit_venue(venue_id):
   venue_record = Venue.query.get(venue_id)
   # Formatting genres
   genres_list = venue_record.genres.split(',')
+  genres_list.remove('')
+  # Converting the genres back into set so that it can fit in for the SelectMultipleField
   genres = set(genres_list)
   form = VenueForm()
+
   venue={
     "id": venue_record.id,
     "name": venue_record.name,
@@ -536,7 +535,6 @@ def edit_venue(venue_id):
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
-  # venue record with ID <venue_id> using the new attributes
   venue = Venue.query.get(venue_id)
 
   # Parsing (reformatting) genres data
@@ -593,8 +591,8 @@ def create_artist_submission():
   # called upon submitting the new artist listing form
   genres = ''
   data_length = len(request.form.getlist('genres'))
-  for data in range(data_length):
-    genres += str(request.form.getlist('genres')[data])+","
+  for genre_index in range(data_length):
+    genres += str(request.form.getlist('genres')[genre_index])+","
   
   try:   
     form = Artist(
@@ -631,47 +629,55 @@ def create_artist_submission():
 
 @app.route('/shows')
 def shows():
-  # displays list of shows at /shows
-  venue1 = Venue.query.get(1)
-  venue3 = Venue.query.get(3)
-  artist4 = Artist.query.get(4)
-  artist5 = Artist.query.get(5)
-  artist6 = Artist.query.get(6)
+  # displays list of shows at /shows route
+  venue1 = db.session.query(Venue).join(Show).filter(Show.venue_id==1).first()
+  venue3 = db.session.query(Venue).join(Show).filter(Show.venue_id==4).first()
+  venue1_artist = db.session.query(Artist).join(Show).filter(Show.venue_id==venue1.id).first()
+  venue1_artist_show_time = db.session.query(Show).filter(Show.venue_id==venue1.id).first().start_time
+  venue3_1st_artist = db.session.query(Artist).join(Show).filter(Show.venue_id==venue3.id).first()
+  venue3_2nd_artist = db.session.query(Artist).join(Show).filter(Show.venue_id==venue3.id, Show.id==4).first()
+  venue3_3rd_artist = db.session.query(Artist).join(Show).filter(Show.venue_id==venue3.id, Show.id==5).first()
+  venue3_4th_artist = db.session.query(Artist).join(Show).filter(Show.venue_id==venue3.id, Show.id==6).first()
+  venue3_1st_artist_show_time = db.session.query(Show).filter(Show.venue_id==venue3.id).first().start_time
+  venue3_2nd_artist_show_time = db.session.query(Show).filter(Show.venue_id==venue3.id, Show.id==4).first().start_time
+  venue3_3rd_artist_show_time = db.session.query(Show).filter(Show.venue_id==venue3.id, Show.id==5).first().start_time
+  venue3_4th_artist_show_time = db.session.query(Show).filter(Show.venue_id==venue3.id, Show.id==6).first().start_time
+
   data=[{
     "venue_id": venue1.id,
     "venue_name": venue1.name,
-    "artist_id": artist4.id,
-    "artist_name": artist4.name,
-    "artist_image_link": artist4.image_link,
-    "start_time": str(Show.query.get(1).start_time)
+    "artist_id": venue1_artist.id,
+    "artist_name": venue1_artist.name,
+    "artist_image_link": venue1_artist.image_link,
+    "start_time": str(venue1_artist_show_time)
   }, {
     "venue_id": venue3.id,
     "venue_name": venue3.name,
-    "artist_id": artist5.id,
-    "artist_name": artist5.name,
-    "artist_image_link": artist5.image_link,
-    "start_time": str(Show.query.get(2).start_time)
+    "artist_id": venue3_1st_artist.id,
+    "artist_name": venue3_1st_artist.name,
+    "artist_image_link": venue3_1st_artist.image_link,
+    "start_time": str(venue3_1st_artist_show_time)
   }, {
     "venue_id": venue3.id,
     "venue_name": venue3.name,
-    "artist_id": artist6.id,
-    "artist_name": artist6.name,
-    "artist_image_link": artist6.image_link,
-    "start_time": str(Show.query.get(3).start_time)
+    "artist_id": venue3_2nd_artist.id,
+    "artist_name": venue3_2nd_artist.name,
+    "artist_image_link": venue3_2nd_artist.image_link,
+    "start_time": str(venue3_2nd_artist_show_time)
   }, {
     "venue_id": venue3.id,
     "venue_name": venue3.name,
-    "artist_id": artist6.id,
-    "artist_name": artist6.name,
-    "artist_image_link": artist6.image_link,
-    "start_time": str(Show.query.get(4).start_time)
+    "artist_id": venue3_3rd_artist.id,
+    "artist_name": venue3_3rd_artist.name,
+    "artist_image_link": venue3_3rd_artist.image_link,
+    "start_time": str(venue3_3rd_artist_show_time)
   }, {
     "venue_id": venue3.id,
     "venue_name": venue3.name,
-    "artist_id": artist6.id,
-    "artist_name": artist6.name,
-    "artist_image_link": artist6.image_link,
-    "start_time": str(Show.query.get(5).start_time)
+    "artist_id": venue3_4th_artist.id,
+    "artist_name": venue3_4th_artist.name,
+    "artist_image_link": venue3_4th_artist.image_link,
+    "start_time": str(venue3_4th_artist_show_time)
   }]
   return render_template('pages/shows.html', shows=data)
 
