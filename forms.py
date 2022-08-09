@@ -1,8 +1,8 @@
 from datetime import datetime
 from random import choice
 from flask_wtf import Form
-from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
-from wtforms.validators import DataRequired, AnyOf, URL
+from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField, IntegerField
+from wtforms.validators import DataRequired, AnyOf, URL, NumberRange
 
 class ShowForm(Form):
     artist_id = StringField(
@@ -83,8 +83,8 @@ class VenueForm(Form):
     address = StringField(
         'address', validators=[DataRequired()]
     )
-    phone = StringField(
-        'phone'
+    phone = IntegerField(
+        'phone', validators=[DataRequired(), NumberRange(min=11, max=11, message='Type in only numbers and must not exceed 11 characters')]
     )
     image_link = StringField(
         'image_link'
@@ -194,7 +194,7 @@ class ArtistForm(Form):
     )
     phone = StringField(
         # TODO implement validation logic for state
-        'phone', validators=[DataRequired()]
+        'phone', validators=[DataRequired(), NumberRange(min=11, max=11, message='Type in only numbers and must not exceed 11 characters')]
     )
     image_link = StringField(
         'image_link'
