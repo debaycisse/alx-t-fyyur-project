@@ -71,17 +71,24 @@ def index():
 @app.route('/venues')
 def venues():
 
-  venues_data = [{}]
+  # venues_data=[{
+  #   "city": None,
+  #   "state": None,
+  #   "venues": [{
+  #     "id": None,
+  #     "name": None,
+  #     "num_upcoming_shows": None,
+  #   }]
+  # }]
 
-  for venue in db.session.query(Venue).all():
-     for index in range(len(venues_data)):
-       if len(venues_data) > 1:
-         if venue.state == venues_data[index]['state']:
-           venues_data[index]['venues'].append({'id': venue.id, 'name': venue.name, 'num_upcoming_shows': db.session.query(Show).filter(Show.venue_id==venue.id, Show.start_time>datetime.now()).count()})
-         else:
-           venues_data.append({'city': venue.city, 'state': venue.state, 'venues': [{'id': venue.id, 'name': venue.name, 'num_upcoming_shows': db.session.query(Show).filter(Show.venue_id==venue.id, Show.start_time>datetime.now()).count()}]})
-       else:
-         venues_data.append({'city': venue.city, 'state': venue.state, 'venues': [{'id': venue.id, 'name': venue.name, 'num_upcoming_shows': db.session.query(Show).filter(Show.venue_id==venue.id, Show.start_time>datetime.now()).count()}]})
+  # for venue_main in db.session.query(Venue).all():
+  #   for venue in venues_data:
+  #     if venue_main.state == venue['state']:
+  #       venue['venues'].append( {'id': venue_main.id, 'name': venue_main.name, 'num_upcoming_shows': db.session.query(Show).filter(Show.venue_id==venue_main.id, Show.start_time>datetime.now()).count()} )
+  #       continue
+  #     else:
+  #       venues_data.append({'city': venue_main.city, 'state': venue_main.state, 'venues': {'id': venue_main.id, 'name': venue_main.name, 'num_upcoming_shows': db.session.query(Show).filter(Show.venue_id==venue_main.id, Show.start_time>datetime.now()).count()} })
+  #       continue
 
 
   venue1 = Venue.query.get(1)
@@ -114,7 +121,7 @@ def venues():
       "num_upcoming_shows": venue2_upcoming_shows_count
     }]
   }]
-  return render_template('pages/venues.html', areas=venues_data)
+  return render_template('pages/venues.html', areas=data)
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
