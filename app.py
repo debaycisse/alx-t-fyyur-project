@@ -25,6 +25,12 @@ from model import *
 
 app = Flask(__name__)
 db.init_app(app)
+
+# def create_app():
+#   db.init_app(app)
+#   return app
+
+
 moment = Moment(app)
 app.config.from_object('config')
 migrate = Migrate(app, db)
@@ -65,6 +71,19 @@ def index():
 @app.route('/venues')
 def venues():
 
+  venues_data = [{}]
+
+  for venue in db.session.query(Venue).all():
+     for index in range(len(venues_data)):
+       if len(venues_data) > 1:
+         if venue.state == venues_data[index]['state']:
+           venues_data[index]['venues'].append({'id': venue.id, 'name': venue.name, 'num_upcoming_shows': db.session.query(Show).filter(Show.venue_id==venue.id, Show.start_time>datetime.now()).count()})
+         else:
+           venues_data.append({'city': venue.city, 'state': venue.state, 'venues': [{'id': venue.id, 'name': venue.name, 'num_upcoming_shows': db.session.query(Show).filter(Show.venue_id==venue.id, Show.start_time>datetime.now()).count()}]})
+       else:
+         venues_data.append({'city': venue.city, 'state': venue.state, 'venues': [{'id': venue.id, 'name': venue.name, 'num_upcoming_shows': db.session.query(Show).filter(Show.venue_id==venue.id, Show.start_time>datetime.now()).count()}]})
+
+
   venue1 = Venue.query.get(1)
   venue1_upcoming_shows_count = db.session.query(Show).filter(Show.venue_id==venue1.id).filter(Show.start_time>datetime.now()).count()
 
@@ -95,7 +114,7 @@ def venues():
       "num_upcoming_shows": venue2_upcoming_shows_count
     }]
   }]
-  return render_template('pages/venues.html', areas=data)
+  return render_template('pages/venues.html', areas=venues_data)
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -249,19 +268,26 @@ def create_venue_submission():
   for genre_index in range(data_length):
     genres += str(request.form.getlist('genres')[genre_index])+","
 
+  # Formatting value, supplied by talent seeking field
+  seeking_talent = False
+  if request.form.get('seeking_talent') == 'y':
+    seeking_talent = True
+  else:
+    seeking_talent = False
+
   try:
     form = Venue(
     name = request.form.get('name'),
     city = request.form.get('city'),
     state = request.form.get('state'),
     address = request.form.get('address'),
-    phone = request.form.get('phone'),
+    phone = str(request.form.get('phone')),
     image_link = request.form.get('image_link'),
     facebook_link = request.form.get('facebook_link'),
     genres = genres,
-    seeking_talent = request.form.get('seeking_talent'),
+    seeking_talent = seeking_talent,
     seeking_description = request.form.get('seeking_description'),
-    website_link = request.form.get('website_link') 
+    website = request.form.get('website_link') 
   )
      
     db.session.add(form)
@@ -594,6 +620,13 @@ def create_artist_submission():
   for genre_index in range(data_length):
     genres += str(request.form.getlist('genres')[genre_index])+","
   
+  # Formatting value, supplied by venue seeking field
+  seeking_venue = False
+  if request.form.get('seeking_venue') == 'y':
+    seeking_venue = True
+  else:
+    seeking_venue = False
+
   try:   
     form = Artist(
       name = request.form.get('name'),
@@ -604,7 +637,7 @@ def create_artist_submission():
       image_link = request.form.get('image_link'),
       facebook_link = request.form.get('facebook_link'),
       website = request.form.get('website_link'),
-      seeking_venue = request.form.get('seeking_venue'),
+      seeking_venue = seeking_venue,
       seeking_description = request.form.get('seeking_description')
     )
 
